@@ -207,9 +207,10 @@ The pattern used for both existing adapters:
 
 2. **Caller loop** matching the environment's own step interface — see the Quick Start examples above for the `serialize → planner.run → to_action` pattern.
 
-3. If the environment's prompt needs environment-specific framing (units, objective description), add a `generate_economic_prompt_x` + `plan_economic_x` pair in `economic_role.py` and pass it as `Planner(economic_plan_fn=plan_economic_x)`.
+3. If the environment's prompt needs environment-specific framing (units, objective description), add a `generate_economic_prompt_x` + `plan_economic_x` pair in `economic_role.py` and pass it as `Planner(economic_plan_fn=plan_economic_x)`.  
 
-**Key:**  the common planner, LLM client, contracts, and repair logic do not need to change when adding a new environment. Environment-specific behaviour is introduced through adapters and role-specific prompt functions.
+**Key:** the common planner, LLM client, contracts, and repair logic do not need to change when adding a new environment. Environment-specific behaviour is introduced through adapters and role-specific prompt functions.
+
 ---
 
 ## LLM Output Reliability
