@@ -1,0 +1,10 @@
+numpy
+
+# Optional, only needed if you use the SustainGym adapter:
+# sustaingym
+# acnportal
+# cvxpy
+# ecos
+
+# Optional, only needed if you use the EV2Gym adapter:
+# ev2gym
