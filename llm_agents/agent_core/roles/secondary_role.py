@@ -1,5 +1,5 @@
 """
-Secondary role: environment-specific "not primarily profit-driven"
+Secondary role: "not primarily profit-driven"
 counterpart to economic_role.py.
 
 Renamed from environmental_role.py, and every function below is
@@ -8,12 +8,8 @@ one environment is primary) -- the EV2Gym and SustainGym variants below
 optimize for genuinely different things, so a reader must not be able to
 assume "environmental" defaults to either one:
 
-EV2Gym has no carbon/emissions signal in its reward (see
-economic_role.generate_economic_prompt's docstring — forecast_emissions is
-inert zeros there, confirmed in ev2gym_adapter.serialize). Framing the
-EV2Gym variant as "carbon-aware" would fabricate a signal the environment
-doesn't have, so for EV2Gym this role instead means "safety/satisfaction
-first": avoid transformer violations and avoid leaving EVs under-charged,
+EV2Gym has no carbon/emissions signal in its reward, for EV2Gym this role instead
+means "safety/satisfaction first": avoid transformer violations and avoid leaving EVs under-charged,
 with profit not considered at all. Hence plan_safety_ev2gym /
 generate_safety_prompt_ev2gym below.
 
