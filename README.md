@@ -12,8 +12,8 @@ A modular, environment-agnostic LLM planning framework for EV charging / energy 
 - **Planning loop** — replans every N steps (configurable), caches decisions for efficiency
 - **JSON repair pipeline** — recovers from common small-model formatting mistakes (markdown fences, trailing commas, unescaped newlines, unclosed arrays before trailing fields, blend-explanation comments in the coordinator's own response)
 - **Rate-limit handling** — proactive request pacing + exponential backoff retries, tuned for free-tier cloud APIs (e.g. Groq's 30 req/min)
-- **Constraint validation** — disconnected EVs forced to 0, transformer/network limits respected
-
+- **Action validation** — disconnected EVs are forced to 0, requested actions  are bounded by resource-level limits, and environment-specific feasibility
+  handling is applied before execution
 ---
 
 ## Architecture
@@ -40,7 +40,7 @@ llm_agents/
 - `secondary_role`: the non-profit-primary counterpart role — `plan_safety_ev2gym` (avoid transformer violations + user dissatisfaction; EV2Gym has no carbon signal) and `plan_environmental_sustaingym` (minimize carbon cost using the real MOER forecast)
 - `coordinator_role`: `plan_coordinated` / `plan_coordinated_sustaingym` run the economic and secondary roles independently, then make a third LLM call that is shown both proposals and must pick one or blend them into a final `Decision` (`role="coordinated"`)
 - Consumes: `SituationCard` only. Produces: `Decision` only.
-- **No imports from `ev2gym` or `sustaingym`, no environment-specific logic**
+- - **No direct imports from `ev2gym` or `sustaingym`.** 
 
 ### Layer 2: `adapters/` (Environment-Specific)
 - `ev2gym_adapter.py` — `serialize(env) → SituationCard`, `to_action(decision, env) → action_vector`. Lists all occupied ports on every call.
@@ -209,8 +209,7 @@ The pattern used for both existing adapters:
 
 3. If the environment's prompt needs environment-specific framing (units, objective description), add a `generate_economic_prompt_x` + `plan_economic_x` pair in `economic_role.py` and pass it as `Planner(economic_plan_fn=plan_economic_x)`.
 
-**Key: `agent_core/` never changes.** Verified twice — EV2Gym and SustainGym share the identical planner, LLM client, and repair logic.
-
+**Key:**  the common planner, LLM client, contracts, and repair logic do not need to change when adding a new environment. Environment-specific behaviour is introduced through adapters and role-specific prompt functions.
 ---
 
 ## LLM Output Reliability
@@ -220,7 +219,7 @@ Structured JSON output from small models (this framework was developed/tested wi
 1. **`parse_with_repair`** (`agent_core/roles/economic_role.py`) — a multi-pass repair chain: strips markdown fences, extracts the outermost `{...}`, escapes stray control characters inside strings, closes an `actions` array the model forgot to terminate before appending `estimated_cost_eur`, and strips trailing commas. Falls back to an all-zero "idle" decision only if every repair pass fails.
 2. **`frequency_penalty=0.3`** on the completion request (`llm_client.py`) — mitigates a token-repetition degeneration where the model gets stuck re-emitting (or inventing new) action entries instead of terminating.
 
-Prompt shape matters more than model size for reliability: prompts that list every resource on every call (fixed-cardinality, repeated field names) are more prone to this degeneration than prompts that list only *active* resources (shorter, variable-length). `ev2gym_adapter.py` and `sustaingym_adapter.py` both follow the "active resources only" pattern for this reason.
+Prompt shape materially affected structured-output reliability in the experiments: Prompts that listed every resource at each call, using fixed-cardinality and highly repetitive fields, were associated with a greater tendency toward repetition and incomplete JSON generation. Restricting the prompt to active resources reduced prompt length and repetition. The final EV2Gym and SustainGym implementations therefore expose only active resources to the LLM.
 
 ---
 
@@ -236,7 +235,7 @@ Prompt shape matters more than model size for reliability: prompts that list eve
 
 ## What's NOT Implemented
 
-- Other environment adapters (e.g. PowerGridworld) — the generalisation claim currently rests on n=2 environments
+- Other environment adapters (e.g. PowerGridworld) — cross-environment evaluation is currently limited to EV2Gym and SustainGym
 - Model-size ablation — everything above was developed against a single 8B model (`llama-3.1-8b-instant`)
 - Statistical significance / variance reporting across seeds
 
